@@ -54,14 +54,14 @@ if option == "จาก URL":
         try:
             response = requests.get(url)
             img = Image.open(BytesIO(response.content)).convert("RGB")
-            st.image(img, caption="รูปภาพที่โหลดจาก URL", use_column_width=True)
+            st.image(img, caption="รูปภาพที่โหลดจาก URL", use_container_width =True)
         except:
             st.error("โหลดรูปภาพไม่สำเร็จ โปรดตรวจสอบ URL อีกครั้ง")
 elif option == "อัปโหลดไฟล์":
     uploaded_file = st.file_uploader("เลือกไฟล์รูปภาพ", type=["jpg", "jpeg", "png"])
     if uploaded_file:
         img = Image.open(uploaded_file).convert("RGB")
-        st.image(img, caption="รูปภาพที่อัปโหลด", use_column_width=True)
+        st.image(img, caption="รูปภาพที่อัปโหลด", use_container_width =True)
 
 # ถ้ามีรูปภาพ ให้ตรวจจับวัตถุ
 if img:
