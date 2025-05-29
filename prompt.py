@@ -3,18 +3,26 @@ import requests
 from PIL import Image
 from io import BytesIO
 
-# หัวข้อของหน้าเว็บ
-st.title("แสดงรูปภาพจาก URL")
+# หัวข้อหลัก
+st.title("เลือกรูปภาพเพื่อแสดง")
 
-# URL ของรูปภาพ
-image_url = "https://upload.wikimedia.org/wikipedia/commons/b/bf/Bulldog_inglese.jpg"
+# URLs ของรูปภาพ
+image_urls = {
+    "บูลด็อก": "https://upload.wikimedia.org/wikipedia/commons/b/bf/Bulldog_inglese.jpg",
+    "ไซบีเรียน ฮัสกี้": "https://upload.wikimedia.org/wikipedia/commons/6/60/Siberian_Husky_pho.jpg",
+    "โกลเด้น รีทรีฟเวอร์": "https://upload.wikimedia.org/wikipedia/commons/0/08/Golden_retriever_eating_pigs_foot.jpg"
+}
 
-# ดึงข้อมูลรูปภาพจาก URL
-response = requests.get(image_url)
+# แสดงตัวเลือกภาพ
+choice = st.radio("เลือกรูปภาพที่คุณต้องการดู:", list(image_urls.keys()))
 
-# ตรวจสอบว่าโหลดรูปภาพสำเร็จหรือไม่
+# ดึงรูปภาพจาก URL ที่เลือก
+selected_url = image_urls[choice]
+response = requests.get(selected_url)
+
+# แสดงภาพที่เลือก
 if response.status_code == 200:
     img = Image.open(BytesIO(response.content))
-    st.image(img, caption="Bulldog Inglese", use_column_width=True)
+    st.image(img, caption=choice, use_column_width=True)
 else:
     st.error("ไม่สามารถโหลดรูปภาพจาก URL ได้")
