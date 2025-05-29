@@ -4,7 +4,7 @@ from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 
 st.set_page_config(layout="wide")
-st.title("📸 ระบบดูภาพพร้อมแกน X/Y")
+st.title("📸 ระบบดูภาพ")
 
 image_urls = {
     "บูลด็อก": "https://upload.wikimedia.org/wikipedia/commons/b/bf/Bulldog_inglese.jpg",
@@ -16,6 +16,7 @@ headers = {
     "User-Agent": "MyStreamlitApp/1.0 (example@example.com)"
 }
 
+# Session state setup
 if "selected_image" not in st.session_state:
     st.session_state.selected_image = None
 if "cached_images" not in st.session_state:
@@ -50,17 +51,24 @@ def add_axes_to_image(img, width, height, spacing=100):
     canvas.paste(img, (margin_x, 0))
     draw = ImageDraw.Draw(canvas)
 
-    # แกน Y (แนวตั้ง ด้านซ้าย)
+    # แกน Y (ซ้าย)
     for y in range(0, height + 1, spacing):
         draw.line([(margin_x - 5, y), (margin_x, y)], fill="black")
         draw.text((0, y - 7), str(y), fill="black", font=font)
 
-    # แกน X (แนวนอน ด้านล่าง)
+    # แกน X (ล่าง)
     for x in range(0, width + 1, spacing):
         draw.line([(margin_x + x, height), (margin_x + x, height + 5)], fill="black")
         draw.text((margin_x + x - 10, height + 10), str(x), fill="black", font=font)
 
     return canvas
+
+def blend_images(base_img, overlay_img, alpha):
+    """ซ้อน overlay_img ลงบน base_img ด้วย alpha"""
+    overlay_resized = overlay_img.resize(base_img.size).convert("RGBA")
+    base_img_rgba = base_img.convert("RGBA")
+    blended = Image.blend(base_img_rgba, overlay_resized, alpha)
+    return blended.convert("RGB")
 
 def show_thumbnail_page():
     st.markdown("### เลือกรูปภาพที่คุณต้องการดูแบบขยาย")
@@ -81,24 +89,42 @@ def show_full_image_page():
         st.error("ไม่พบ URL ของรูปภาพนี้")
         return
 
-    img = load_image_cached(url)
-    if img:
+    base_img = load_image_cached(url)
+    if base_img:
         st.markdown(f"### ดูภาพขนาดใหญ่: **{name}**")
-        left_col, right_col = st.columns([1, 3])
+        left_col, right_col = st.columns([1.2, 3])
 
         with left_col:
-            st.subheader("ปรับขนาดภาพ")
+            st.subheader("🔧 ปรับขนาดและความชัด")
             width = st.slider("ความกว้าง (px)", 100, 1200, 700, 50)
             height = st.slider("ความสูง (px)", 100, 1200, 500, 50)
+
+            st.markdown("### 🔍 ความชัดของภาพรอง")
+            overlay_opacity = {}
+            for other_name in image_urls:
+                if other_name != name:
+                    overlay_opacity[other_name] = st.slider(
+                        f"ความชัด '{other_name}'", 0.0, 1.0, 0.0, 0.05)
+
             st.markdown("---")
             if st.button("🔙 กลับไปหน้าเลือกภาพ"):
                 st.session_state.selected_image = None
 
-        with right_col:
-            img_with_axes = add_axes_to_image(img, width, height)
-            st.image(img_with_axes, caption=f"{name} (พร้อมแกน X/Y)", use_column_width=False)
+        # Resize และรวมภาพรองตามความชัด
+        main_resized = base_img.resize((width, height)).convert("RGB")
+        blended_img = main_resized
 
-# Main app logic
+        for other_name, opacity in overlay_opacity.items():
+            if opacity > 0:
+                other_img = load_image_cached(image_urls[other_name])
+                if other_img:
+                    blended_img = blend_images(blended_img, other_img, opacity)
+
+        final_img_with_axes = add_axes_to_image(blended_img, width, height)
+        with right_col:
+            st.image(final_img_with_axes, caption=f"{name} + ภาพซ้อน พร้อมแกน X/Y", use_column_width=False)
+
+# Main logic
 if st.session_state.selected_image is None:
     show_thumbnail_page()
 else:
