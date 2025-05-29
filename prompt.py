@@ -2,15 +2,13 @@ import streamlit as st
 import requests
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
-from transformers import pipeline
-
-# โหลดโมเดลตรวจจับ
-classifier = pipeline("image-classification")
 
 st.set_page_config(layout="wide")
 st.title("📸 ระบบดูภาพและอัปโหลดภาพใหม่")
 
-# ภาพเริ่มต้น
+# ---------------------
+# ส่วนของภาพเริ่มต้น
+# ---------------------
 default_images = {
     "บูลด็อก": "https://upload.wikimedia.org/wikipedia/commons/b/bf/Bulldog_inglese.jpg",
     "แมว": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/British_shorthair_with_calico_coat_%282%29.jpg/330px-British_shorthair_with_calico_coat_%282%29.jpg",
@@ -27,7 +25,9 @@ if "cached_images" not in st.session_state:
 if "custom_images" not in st.session_state:
     st.session_state.custom_images = {}
 
-# ฟังก์ชันโหลดภาพ
+# ---------------------
+# ฟังก์ชันจัดการภาพ
+# ---------------------
 def load_image_from_url(url):
     try:
         response = requests.get(url, headers=headers)
@@ -73,6 +73,9 @@ def blend_images(base_img, overlay_img, alpha):
     blended = Image.blend(base_img_rgba, overlay_resized, alpha)
     return blended.convert("RGB")
 
+# ---------------------
+# แสดงหน้าเลือกภาพ
+# ---------------------
 def show_thumbnail_page():
     st.markdown("### 🔍 เลือกหรืออัปโหลดภาพ")
     all_images = {**default_images, **st.session_state.custom_images}
@@ -110,6 +113,9 @@ def show_thumbnail_page():
                 st.session_state.custom_images[name] = img
                 st.success(f"เพิ่มภาพจาก URL แล้วชื่อว่า '{name}'")
 
+# ---------------------
+# แสดงหน้าภาพขนาดใหญ่
+# ---------------------
 def show_full_image_page():
     all_images = {**default_images, **st.session_state.custom_images}
     name = st.session_state.selected_image
@@ -137,16 +143,11 @@ def show_full_image_page():
         if st.button("🔙 กลับไปหน้าเลือกภาพ"):
             st.session_state.selected_image = None
 
-        st.subheader("🧠 ตรวจจับวัตถุในภาพ")
-        with st.spinner("กำลังวิเคราะห์ภาพ..."):
-            try:
-                result = classifier(selected_img)
-                for item in result[:3]:
-                    st.write(f"🔹 {item['label']} ({item['score']:.2f})")
-            except Exception as e:
-                st.error(f"เกิดข้อผิดพลาดในการวิเคราะห์ภาพ: {e}")
+        st.subheader("🧠 (ตัวอย่าง) ตรวจจับวัตถุ")
+        st.info("⚠️ คุณไม่ได้ติดตั้งโมเดลตรวจจับภาพ จึงแสดงข้อความจำลองเท่านั้น")
+        st.write("🔹 จำลองผลลัพธ์: cat (0.99)")
+        st.write("🔹 จำลองผลลัพธ์: dog (0.87)")
 
-    # รวมภาพ
     base_resized = selected_img.resize((width, height)).convert("RGB")
     blended_img = base_resized
 
@@ -159,7 +160,9 @@ def show_full_image_page():
     with right_col:
         st.image(final_img, caption=f"{name} + ภาพซ้อน พร้อมแกน X/Y", use_column_width=False)
 
-# Main
+# ---------------------
+# Main app
+# ---------------------
 if st.session_state.selected_image is None:
     show_thumbnail_page()
 else:
