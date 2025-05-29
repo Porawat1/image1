@@ -30,9 +30,9 @@ if "custom_images" not in st.session_state:
 # ---------------------
 def load_image_from_url(url):
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
-        return Image.open(BytesIO(response.content))
+        return Image.open(BytesIO(response.content)).convert("RGB")
     except Exception as e:
         st.error(f"โหลดภาพไม่สำเร็จจาก URL: {e}")
         return None
@@ -92,6 +92,9 @@ def show_thumbnail_page():
                 st.image(img, caption=name, width=180)
                 if st.button(f"ดู {name}", key=f"btn_{name}"):
                     st.session_state.selected_image = name
+        else:
+            with col:
+                st.write(f"ไม่สามารถโหลดภาพ '{name}' ได้")
 
     st.markdown("---")
     st.subheader("🖼 เพิ่มภาพใหม่")
@@ -100,9 +103,10 @@ def show_thumbnail_page():
     with col1:
         uploaded = st.file_uploader("อัปโหลดภาพจากเครื่อง", type=["jpg", "jpeg", "png"])
         if uploaded:
-            img = Image.open(uploaded)
+            img = Image.open(uploaded).convert("RGB")
             st.session_state.custom_images[uploaded.name] = img
             st.success(f"เพิ่มภาพ '{uploaded.name}' แล้ว")
+            st.experimental_rerun()
 
     with col2:
         url = st.text_input("หรือป้อน URL ของภาพ")
@@ -112,6 +116,7 @@ def show_thumbnail_page():
                 name = f"URL-{len(st.session_state.custom_images)+1}"
                 st.session_state.custom_images[name] = img
                 st.success(f"เพิ่มภาพจาก URL แล้วชื่อว่า '{name}'")
+                st.experimental_rerun()
 
 # ---------------------
 # แสดงหน้าภาพขนาดใหญ่
