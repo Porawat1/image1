@@ -51,10 +51,10 @@ def draw_boxes(image, boxes, labels, scores, threshold=0.5):
             draw.rectangle([(xmin, ymin), (xmax, ymax)], outline="red", width=3)
             # วาดข้อความ
             text = f"{label}: {score:.2f}"
-            text_size = draw.textsize(text, font=font)
+            text_width, text_height = font.getsize(text)  # แก้ไขตรงนี้
             # กล่องข้อความด้านหลังให้เห็นชัด
-            draw.rectangle([xmin, ymin - text_size[1], xmin + text_size[0], ymin], fill="red")
-            draw.text((xmin, ymin - text_size[1]), text, fill="white", font=font)
+            draw.rectangle([xmin, ymin - text_height, xmin + text_width, ymin], fill="red")
+            draw.text((xmin, ymin - text_height), text, fill="white", font=font)
     return image
 
 st.title("Object Detection with Streamlit")
@@ -68,14 +68,14 @@ if option == "จาก URL":
         try:
             response = requests.get(url)
             img = Image.open(BytesIO(response.content)).convert("RGB")
-            st.image(img, caption="รูปภาพที่โหลดจาก URL", use_column_width=True)
+            st.image(img, caption="รูปภาพที่โหลดจาก URL", use_container_width=True)
         except:
             st.error("โหลดรูปภาพไม่สำเร็จ โปรดตรวจสอบ URL อีกครั้ง")
 elif option == "อัปโหลดไฟล์":
     uploaded_file = st.file_uploader("เลือกไฟล์รูปภาพ", type=["jpg", "jpeg", "png"])
     if uploaded_file:
         img = Image.open(uploaded_file).convert("RGB")
-        st.image(img, caption="รูปภาพที่อัปโหลด", use_column_width=True)
+        st.image(img, caption="รูปภาพที่อัปโหลด", use_container_width=True)
 
 if img:
     st.write("กำลังวิเคราะห์รูปภาพ...")
