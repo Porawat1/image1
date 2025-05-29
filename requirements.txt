@@ -1,5 +1,5 @@
 streamlit
-scikit-image>=0.19.3
+scikit-image
 matplotlib
 pillow
 requests
