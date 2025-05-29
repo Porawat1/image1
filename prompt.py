@@ -1,6 +1,6 @@
 import streamlit as st
 import requests
-from PIL import Image
+from PIL import Image, ImageDraw
 from io import BytesIO
 
 st.set_page_config(layout="wide")
@@ -35,6 +35,22 @@ def load_image_cached(url):
     except Exception as e:
         st.error(f"โหลดรูปภาพไม่สำเร็จ: {e}")
         return None
+
+def add_grid_to_image(img, grid_spacing=50, line_color=(255, 0, 0, 128)):
+    """เพิ่มเส้นกริดแกน X และ Y ลงบนภาพ"""
+    img_with_grid = img.convert("RGBA")
+    draw = ImageDraw.Draw(img_with_grid)
+    width, height = img_with_grid.size
+
+    # วาดเส้นแนวตั้ง (แกน Y)
+    for x in range(0, width, grid_spacing):
+        draw.line([(x, 0), (x, height)], fill=line_color, width=1)
+
+    # วาดเส้นแนวนอน (แกน X)
+    for y in range(0, height, grid_spacing):
+        draw.line([(0, y), (width, y)], fill=line_color, width=1)
+
+    return img_with_grid
 
 def show_thumbnail_page():
     """แสดงหน้ารายการภาพเล็กสำหรับเลือก"""
@@ -73,8 +89,9 @@ def show_full_image_page():
                 st.session_state.selected_image = None
 
         with right_col:
-            resized_img = img.resize((width, height))
-            st.image(resized_img, caption=name, use_column_width=False)
+            img_with_grid = add_grid_to_image(img)
+            resized_img = img_with_grid.resize((width, height))
+            st.image(resized_img, caption=name, use_container_width=False)
 
 # Main app logic
 if st.session_state.selected_image is None:
