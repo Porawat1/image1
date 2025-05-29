@@ -49,12 +49,19 @@ def draw_boxes(image, boxes, labels, scores, threshold=0.5):
 
             # วาดกรอบสี่เหลี่ยม
             draw.rectangle([(xmin, ymin), (xmax, ymax)], outline="red", width=3)
+
             # วาดข้อความ
             text = f"{label}: {score:.2f}"
-            text_width, text_height = font.getsize(text)  # แก้ไขตรงนี้
+
+            # คำนวณขนาดข้อความด้วย draw.textbbox()
+            bbox = draw.textbbox((0, 0), text, font=font)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+
             # กล่องข้อความด้านหลังให้เห็นชัด
             draw.rectangle([xmin, ymin - text_height, xmin + text_width, ymin], fill="red")
             draw.text((xmin, ymin - text_height), text, fill="white", font=font)
+
     return image
 
 st.title("Object Detection with Streamlit")
