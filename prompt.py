@@ -4,7 +4,7 @@ from PIL import Image
 from io import BytesIO
 
 st.set_page_config(layout="wide")
-st.title("ระบบดูภาพแบบเลือกแล้วแสดงเต็มจอ")
+st.title("📸 ระบบดูภาพแบบเลือกแล้วแสดงเต็มจอ")
 
 image_urls = {
     "บูลด็อก": "https://upload.wikimedia.org/wikipedia/commons/b/bf/Bulldog_inglese.jpg",
@@ -16,6 +16,7 @@ headers = {
     "User-Agent": "MyStreamlitApp/1.0 (example@example.com)"
 }
 
+# Initial session_state setup
 if "selected_image" not in st.session_state:
     st.session_state.selected_image = None
 if "button_clicked" not in st.session_state:
@@ -39,10 +40,10 @@ def load_image_cached(url):
 def show_thumbnail_page():
     st.write("### เลือกรูปภาพที่คุณต้องการดูแบบขยาย")
     cols = st.columns(len(image_urls))
-    for i, (name, url) in enumerate(image_urls.items()):
-        with cols[i]:
-            img = load_image_cached(url)
-            if img:
+    for col, (name, url) in zip(cols, image_urls.items()):
+        img = load_image_cached(url)
+        if img:
+            with col:
                 st.image(img, caption=name, width=150)
                 if st.button(f"ดู {name}", key=f"btn_{name}"):
                     st.session_state.selected_image = name
@@ -58,20 +59,26 @@ def show_full_image_page():
 
     img = load_image_cached(url)
     if img:
-        width = st.slider("ปรับความกว้างภาพ (px)", min_value=100, max_value=1200, value=700, step=10)
-        height = st.slider("ปรับความสูงภาพ (px)", min_value=100, max_value=1200, value=500, step=10)
-        resized_img = img.resize((width, height))
-        st.image(resized_img, caption=name)
+        # ใช้ 2 คอลัมน์ เพื่อจัด slider กับรูปภาพแยกกัน
+        left_col, right_col = st.columns([1, 3])
+        with left_col:
+            width = st.slider("ปรับความกว้างภาพ (px)", min_value=100, max_value=1200, value=700, step=10)
+            height = st.slider("ปรับความสูงภาพ (px)", min_value=100, max_value=1200, value=500, step=10)
+            if st.button("กลับไปหน้าเลือกภาพ"):
+                st.session_state.selected_image = None
+                st.session_state.button_clicked = False
+        
+        with right_col:
+            resized_img = img.resize((width, height))
+            st.image(resized_img, caption=name, use_column_width=True)
 
-    if st.button("กลับไปหน้าเลือกภาพ"):
-        st.session_state.selected_image = None
-        st.session_state.button_clicked = False
-
+# Main logic
 if st.session_state.selected_image is None:
     show_thumbnail_page()
 else:
     show_full_image_page()
 
+# Rerun หลังจากปุ่มกด
 if st.session_state.button_clicked:
     st.session_state.button_clicked = False
     st.experimental_rerun()
