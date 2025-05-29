@@ -121,8 +121,10 @@ def show_full_image_page():
     name = st.session_state.selected_image
     selected_img = all_images.get(name)
 
-    if not selected_img:
-        st.error("ไม่พบภาพนี้")
+    if not isinstance(selected_img, Image.Image):
+        st.error(f"ไม่สามารถโหลดภาพ '{name}' ได้ หรือภาพถูกลบไปแล้ว")
+        if st.button("🔙 กลับไปหน้าเลือกภาพ"):
+            st.session_state.selected_image = None
         return
 
     st.markdown(f"### ดูภาพขนาดใหญ่: **{name}**")
@@ -135,16 +137,23 @@ def show_full_image_page():
 
         overlay_opacity = {}
         for other_name, other_img in all_images.items():
-            if other_name != name:
+            if other_name != name and isinstance(other_img, Image.Image):
                 overlay_opacity[other_name] = st.slider(
                     f"ความชัด '{other_name}'", 0.0, 1.0, 0.0, 0.05)
 
         st.markdown("---")
+        if name in st.session_state.custom_images:
+            if st.button("🗑 ลบภาพนี้ออก"):
+                del st.session_state.custom_images[name]
+                st.success(f"ลบภาพ '{name}' เรียบร้อยแล้ว")
+                st.session_state.selected_image = None
+                return
+
         if st.button("🔙 กลับไปหน้าเลือกภาพ"):
             st.session_state.selected_image = None
 
         st.subheader("🧠 (ตัวอย่าง) ตรวจจับวัตถุ")
-        st.info("⚠️ คุณไม่ได้ติดตั้งโมเดลตรวจจับภาพ จึงแสดงข้อความจำลองเท่านั้น")
+        st.info("⚠️ ยังไม่ได้ติดตั้งโมเดลตรวจจับภาพ (demo เท่านั้น)")
         st.write("🔹 จำลองผลลัพธ์: cat (0.99)")
         st.write("🔹 จำลองผลลัพธ์: dog (0.87)")
 
@@ -154,7 +163,8 @@ def show_full_image_page():
     for other_name, opacity in overlay_opacity.items():
         if opacity > 0:
             other_img = all_images[other_name]
-            blended_img = blend_images(blended_img, other_img, opacity)
+            if isinstance(other_img, Image.Image):
+                blended_img = blend_images(blended_img, other_img, opacity)
 
     final_img = add_axes_to_image(blended_img, width, height)
     with right_col:
