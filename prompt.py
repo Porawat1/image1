@@ -42,7 +42,6 @@ def show_thumbnail_page():
                 if st.button(f"ดู {name}", key=f"btn_{name}"):
                     st.session_state.selected_image = name
                     st.session_state.button_clicked = True
-                    # ไม่ต้องเรียก st.experimental_rerun() ตรงนี้
 
 def show_full_image_page():
     name = st.session_state.selected_image
@@ -54,12 +53,17 @@ def show_full_image_page():
 
     img = load_image(url)
     if img:
-        st.image(img, caption=name, use_column_width=True)
+        # เพิ่ม slider สำหรับปรับขนาด
+        width = st.slider("ปรับความกว้างภาพ (px)", min_value=100, max_value=1200, value=700, step=10)
+        height = st.slider("ปรับความสูงภาพ (px)", min_value=100, max_value=1200, value=500, step=10)
+        
+        # ปรับขนาดภาพตาม slider โดยใช้ PIL resize
+        resized_img = img.resize((width, height))
+        st.image(resized_img, caption=name)
 
     if st.button("กลับไปหน้าเลือกภาพ"):
         st.session_state.selected_image = None
         st.session_state.button_clicked = False
-        # ไม่ต้องเรียก st.experimental_rerun() ตรงนี้
 
 # Main logic:
 if st.session_state.selected_image is None:
@@ -67,7 +71,6 @@ if st.session_state.selected_image is None:
 else:
     show_full_image_page()
 
-# หลังจาก render เสร็จแล้วถ้ากดปุ่ม ให้ rerun ทีหลัง
 if st.session_state.button_clicked:
     st.session_state.button_clicked = False
     st.experimental_rerun()
