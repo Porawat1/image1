@@ -24,5 +24,3 @@ response = requests.get(selected_url)
 if response.status_code == 200:
     img = Image.open(BytesIO(response.content))
     st.image(img, caption=choice, use_column_width=True)
-else:
-    st.error("ไม่สามารถโหลดรูปภาพจาก URL ได้")
