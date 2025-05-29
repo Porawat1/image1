@@ -7,7 +7,7 @@ st.set_page_config(layout="wide")
 st.title("📸 ระบบดูภาพและอัปโหลดภาพใหม่")
 
 # ---------------------
-# ส่วนของภาพเริ่มต้น
+# ภาพเริ่มต้น
 # ---------------------
 default_images = {
     "บูลด็อก": "https://upload.wikimedia.org/wikipedia/commons/b/bf/Bulldog_inglese.jpg",
@@ -17,7 +17,9 @@ default_images = {
 
 headers = {"User-Agent": "MyStreamlitApp/1.0"}
 
-# Session state setup
+# ---------------------
+# Session State
+# ---------------------
 if "selected_image" not in st.session_state:
     st.session_state.selected_image = None
 if "cached_images" not in st.session_state:
@@ -26,15 +28,22 @@ if "custom_images" not in st.session_state:
     st.session_state.custom_images = {}
 
 # ---------------------
-# ฟังก์ชันจัดการภาพ
+# โหลดภาพจาก URL
 # ---------------------
 def load_image_from_url(url):
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
+        content_type = response.headers.get("Content-Type", "")
+        if not content_type.startswith("image/"):
+            st.warning(f"URL นี้ไม่ใช่ไฟล์ภาพ: {url}")
+            return None
         return Image.open(BytesIO(response.content))
+    except requests.exceptions.RequestException as e:
+        st.warning(f"ไม่สามารถโหลดภาพจาก URL นี้ได้: {url}\n\nสาเหตุ: {e}")
+        return None
     except Exception as e:
-        st.error(f"โหลดภาพไม่สำเร็จจาก URL: {e}")
+        st.warning(f"เกิดข้อผิดพลาดในการอ่านภาพ: {e}")
         return None
 
 def load_image_cached(url):
@@ -45,6 +54,9 @@ def load_image_cached(url):
         st.session_state.cached_images[url] = img
     return img
 
+# ---------------------
+# เพิ่มแกน X/Y
+# ---------------------
 def add_axes_to_image(img, width, height, spacing=100):
     img = img.resize((width, height))
     try:
@@ -67,6 +79,9 @@ def add_axes_to_image(img, width, height, spacing=100):
 
     return canvas
 
+# ---------------------
+# ซ้อนภาพ
+# ---------------------
 def blend_images(base_img, overlay_img, alpha):
     overlay_resized = overlay_img.resize(base_img.size).convert("RGBA")
     base_img_rgba = base_img.convert("RGBA")
@@ -74,7 +89,7 @@ def blend_images(base_img, overlay_img, alpha):
     return blended.convert("RGB")
 
 # ---------------------
-# แสดงหน้าเลือกภาพ
+# หน้าเลือกภาพ
 # ---------------------
 def show_thumbnail_page():
     st.markdown("### 🔍 เลือกหรืออัปโหลดภาพ")
@@ -84,14 +99,16 @@ def show_thumbnail_page():
     for col, (name, url_or_img) in zip(cols, all_images.items()):
         if isinstance(url_or_img, str):  # URL
             img = load_image_cached(url_or_img)
-        else:  # Image object
+        else:  # อัปโหลด
             img = url_or_img
 
-        if img:
-            with col:
+        with col:
+            if isinstance(img, Image.Image):
                 st.image(img, caption=name, width=180)
                 if st.button(f"ดู {name}", key=f"btn_{name}"):
                     st.session_state.selected_image = name
+            else:
+                st.write(f"🚫 โหลดภาพไม่ได้: {name}")
 
     st.markdown("---")
     st.subheader("🖼 เพิ่มภาพใหม่")
@@ -100,9 +117,12 @@ def show_thumbnail_page():
     with col1:
         uploaded = st.file_uploader("อัปโหลดภาพจากเครื่อง", type=["jpg", "jpeg", "png"])
         if uploaded:
-            img = Image.open(uploaded)
-            st.session_state.custom_images[uploaded.name] = img
-            st.success(f"เพิ่มภาพ '{uploaded.name}' แล้ว")
+            try:
+                img = Image.open(uploaded)
+                st.session_state.custom_images[uploaded.name] = img
+                st.success(f"เพิ่มภาพ '{uploaded.name}' แล้ว")
+            except Exception as e:
+                st.error(f"ไม่สามารถอ่านภาพได้: {e}")
 
     with col2:
         url = st.text_input("หรือป้อน URL ของภาพ")
@@ -113,15 +133,19 @@ def show_thumbnail_page():
                 st.session_state.custom_images[name] = img
                 st.success(f"เพิ่มภาพจาก URL แล้วชื่อว่า '{name}'")
 
+    if st.button("🧹 ล้าง cache ของภาพ"):
+        st.session_state.cached_images.clear()
+        st.success("ล้าง cache แล้ว! ลองโหลดภาพใหม่อีกครั้ง")
+
 # ---------------------
-# แสดงหน้าภาพขนาดใหญ่
+# หน้าแสดงภาพเต็ม
 # ---------------------
 def show_full_image_page():
     all_images = {**default_images, **st.session_state.custom_images}
     name = st.session_state.selected_image
     selected_img = all_images.get(name)
 
-    if not selected_img:
+    if not isinstance(selected_img, Image.Image):
         st.error("ไม่พบภาพนี้")
         return
 
@@ -135,7 +159,7 @@ def show_full_image_page():
 
         overlay_opacity = {}
         for other_name, other_img in all_images.items():
-            if other_name != name:
+            if other_name != name and isinstance(other_img, Image.Image):
                 overlay_opacity[other_name] = st.slider(
                     f"ความชัด '{other_name}'", 0.0, 1.0, 0.0, 0.05)
 
@@ -144,7 +168,7 @@ def show_full_image_page():
             st.session_state.selected_image = None
 
         st.subheader("🧠 (ตัวอย่าง) ตรวจจับวัตถุ")
-        st.info("⚠️ คุณไม่ได้ติดตั้งโมเดลตรวจจับภาพ จึงแสดงข้อความจำลองเท่านั้น")
+        st.info("⚠️ ยังไม่ได้ติดตั้งโมเดลตรวจจับภาพ (demo เท่านั้น)")
         st.write("🔹 จำลองผลลัพธ์: cat (0.99)")
         st.write("🔹 จำลองผลลัพธ์: dog (0.87)")
 
@@ -152,8 +176,8 @@ def show_full_image_page():
     blended_img = base_resized
 
     for other_name, opacity in overlay_opacity.items():
-        if opacity > 0:
-            other_img = all_images[other_name]
+        other_img = all_images[other_name]
+        if opacity > 0 and isinstance(other_img, Image.Image):
             blended_img = blend_images(blended_img, other_img, opacity)
 
     final_img = add_axes_to_image(blended_img, width, height)
@@ -161,7 +185,7 @@ def show_full_image_page():
         st.image(final_img, caption=f"{name} + ภาพซ้อน พร้อมแกน X/Y", use_column_width=False)
 
 # ---------------------
-# Main app
+# Main
 # ---------------------
 if st.session_state.selected_image is None:
     show_thumbnail_page()
