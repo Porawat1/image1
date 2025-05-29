@@ -20,12 +20,17 @@ if "selected_image" not in st.session_state:
     st.session_state.selected_image = None
 if "button_clicked" not in st.session_state:
     st.session_state.button_clicked = False
+if "cached_images" not in st.session_state:
+    st.session_state.cached_images = {}
 
-def load_image(url):
+def load_image_cached(url):
+    if url in st.session_state.cached_images:
+        return st.session_state.cached_images[url]
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         img = Image.open(BytesIO(response.content))
+        st.session_state.cached_images[url] = img
         return img
     except Exception as e:
         st.error(f"โหลดรูปภาพไม่สำเร็จ: {e}")
@@ -36,7 +41,7 @@ def show_thumbnail_page():
     cols = st.columns(len(image_urls))
     for i, (name, url) in enumerate(image_urls.items()):
         with cols[i]:
-            img = load_image(url)
+            img = load_image_cached(url)
             if img:
                 st.image(img, caption=name, width=150)
                 if st.button(f"ดู {name}", key=f"btn_{name}"):
@@ -51,13 +56,10 @@ def show_full_image_page():
         st.error("ไม่พบ URL ของรูปภาพนี้")
         return
 
-    img = load_image(url)
+    img = load_image_cached(url)
     if img:
-        # เพิ่ม slider สำหรับปรับขนาด
         width = st.slider("ปรับความกว้างภาพ (px)", min_value=100, max_value=1200, value=700, step=10)
         height = st.slider("ปรับความสูงภาพ (px)", min_value=100, max_value=1200, value=500, step=10)
-        
-        # ปรับขนาดภาพตาม slider โดยใช้ PIL resize
         resized_img = img.resize((width, height))
         st.image(resized_img, caption=name)
 
@@ -65,7 +67,6 @@ def show_full_image_page():
         st.session_state.selected_image = None
         st.session_state.button_clicked = False
 
-# Main logic:
 if st.session_state.selected_image is None:
     show_thumbnail_page()
 else:
