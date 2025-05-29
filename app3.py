@@ -4,11 +4,12 @@ import requests
 from io import BytesIO
 import torch
 import torchvision.transforms as T
+import torchvision
 
 app = Flask(__name__)
 
-# โหลดโมเดล Faster R-CNN ที่ผ่านการเทรนบน COCO dataset
-model = torch.hub.load('pytorch/vision:v0.15.2', 'fasterrcnn_resnet50_fpn', pretrained=True)
+# โหลดโมเดล Faster R-CNN แบบ pretrained จาก torchvision โดยตรง
+model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
 model.eval()
 
 COCO_INSTANCE_CATEGORY_NAMES = [
@@ -47,7 +48,6 @@ def get_objects(image):
             detected_objects.add(COCO_INSTANCE_CATEGORY_NAMES[label])
 
     return list(detected_objects)
-
 
 HTML_PAGE = '''
 <!doctype html>
@@ -96,7 +96,6 @@ def index():
         else:
             error = 'Please upload a file or enter an image URL.'
     return render_template_string(HTML_PAGE, objects=objects, error=error)
-
 
 if __name__ == '__main__':
     app.run(debug=True)
