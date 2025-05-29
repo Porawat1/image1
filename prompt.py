@@ -121,11 +121,8 @@ def show_full_image_page():
     name = st.session_state.selected_image
     selected_img = all_images.get(name)
 
-    # ตรวจสอบภาพก่อนใช้
-    if not isinstance(selected_img, Image.Image):
-        st.error("ไม่สามารถโหลดภาพนี้ได้ หรือภาพถูกลบไปแล้ว")
-        if st.button("🔙 กลับไปหน้าเลือกภาพ"):
-            st.session_state.selected_image = None
+    if not selected_img:
+        st.error("ไม่พบภาพนี้")
         return
 
     st.markdown(f"### ดูภาพขนาดใหญ่: **{name}**")
@@ -138,20 +135,11 @@ def show_full_image_page():
 
         overlay_opacity = {}
         for other_name, other_img in all_images.items():
-            if other_name != name and isinstance(other_img, Image.Image):
+            if other_name != name:
                 overlay_opacity[other_name] = st.slider(
                     f"ความชัด '{other_name}'", 0.0, 1.0, 0.0, 0.05)
 
         st.markdown("---")
-
-        # ปุ่มลบภาพเฉพาะภาพที่เพิ่มเอง
-        if name in st.session_state.custom_images:
-            if st.button("🗑 ลบภาพนี้"):
-                del st.session_state.custom_images[name]
-                st.success("ลบภาพเรียบร้อยแล้ว")
-                st.session_state.selected_image = None
-                return
-
         if st.button("🔙 กลับไปหน้าเลือกภาพ"):
             st.session_state.selected_image = None
 
@@ -166,8 +154,7 @@ def show_full_image_page():
     for other_name, opacity in overlay_opacity.items():
         if opacity > 0:
             other_img = all_images[other_name]
-            if isinstance(other_img, Image.Image):
-                blended_img = blend_images(blended_img, other_img, opacity)
+            blended_img = blend_images(blended_img, other_img, opacity)
 
     final_img = add_axes_to_image(blended_img, width, height)
     with right_col:
