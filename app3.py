@@ -1,12 +1,10 @@
 import streamlit as st
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 import requests
 from io import BytesIO
 import torch
 from torchvision import models, transforms
-import torchvision
 
-# โหลดโมเดล Faster R-CNN pretrained สำหรับ object detection
 @st.cache_resource
 def load_model():
     model = models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
@@ -15,7 +13,6 @@ def load_model():
 
 model = load_model()
 
-# label ของ COCO dataset (80 class)
 COCO_INSTANCE_CATEGORY_NAMES = [
     '__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
     'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'N/A', 'stop sign',
@@ -32,7 +29,6 @@ COCO_INSTANCE_CATEGORY_NAMES = [
     'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
 ]
 
-# ฟังก์ชันแปลงภาพและทำ object detection
 def predict(image):
     transform = transforms.Compose([
         transforms.ToTensor(),
@@ -42,9 +38,27 @@ def predict(image):
         predictions = model([img])
     return predictions[0]
 
+def draw_boxes(image, boxes, labels, scores, threshold=0.5):
+    draw = ImageDraw.Draw(image)
+    font = ImageFont.load_default()
+
+    for box, label, score in zip(boxes, labels, scores):
+        if score > threshold:
+            xmin, ymin, xmax, ymax = box
+            xmin, ymin, xmax, ymax = int(xmin), int(ymin), int(xmax), int(ymax)
+
+            # วาดกรอบสี่เหลี่ยม
+            draw.rectangle([(xmin, ymin), (xmax, ymax)], outline="red", width=3)
+            # วาดข้อความ
+            text = f"{label}: {score:.2f}"
+            text_size = draw.textsize(text, font=font)
+            # กล่องข้อความด้านหลังให้เห็นชัด
+            draw.rectangle([xmin, ymin - text_size[1], xmin + text_size[0], ymin], fill="red")
+            draw.text((xmin, ymin - text_size[1]), text, fill="white", font=font)
+    return image
+
 st.title("Object Detection with Streamlit")
 
-# เลือก input
 option = st.radio("เลือกวิธีโหลดรูปภาพ", ("จาก URL", "อัปโหลดไฟล์"))
 
 img = None
@@ -54,28 +68,34 @@ if option == "จาก URL":
         try:
             response = requests.get(url)
             img = Image.open(BytesIO(response.content)).convert("RGB")
-            st.image(img, caption="รูปภาพที่โหลดจาก URL", use_container_width =True)
+            st.image(img, caption="รูปภาพที่โหลดจาก URL", use_column_width=True)
         except:
             st.error("โหลดรูปภาพไม่สำเร็จ โปรดตรวจสอบ URL อีกครั้ง")
 elif option == "อัปโหลดไฟล์":
     uploaded_file = st.file_uploader("เลือกไฟล์รูปภาพ", type=["jpg", "jpeg", "png"])
     if uploaded_file:
         img = Image.open(uploaded_file).convert("RGB")
-        st.image(img, caption="รูปภาพที่อัปโหลด", use_container_width =True)
+        st.image(img, caption="รูปภาพที่อัปโหลด", use_column_width=True)
 
-# ถ้ามีรูปภาพ ให้ตรวจจับวัตถุ
 if img:
     st.write("กำลังวิเคราะห์รูปภาพ...")
     preds = predict(img)
 
-    # เลือก object ที่มีความมั่นใจมากกว่า 0.5
-    threshold = 0.5
-    pred_classes = [COCO_INSTANCE_CATEGORY_NAMES[i] for i, score in zip(preds['labels'], preds['scores']) if score > threshold]
-    pred_scores = [score.item() for score in preds['scores'] if score > threshold]
+    boxes = preds['boxes'].tolist()
+    labels = [COCO_INSTANCE_CATEGORY_NAMES[i] for i in preds['labels'].tolist()]
+    scores = preds['scores'].tolist()
 
-    if pred_classes:
+    # วาดกรอบบนรูป
+    img_with_boxes = img.copy()
+    img_with_boxes = draw_boxes(img_with_boxes, boxes, labels, scores, threshold=0.5)
+
+    st.image(img_with_boxes, caption="ผลลัพธ์พร้อมกรอบวัตถุ", use_column_width=True)
+
+    # แสดงชื่อวัตถุที่ตรวจจับได้
+    detected_objects = [label for label, score in zip(labels, scores) if score > 0.5]
+    if detected_objects:
         st.write("วัตถุที่พบในภาพ:")
-        for cls, score in zip(pred_classes, pred_scores):
-            st.write(f"- {cls} (ความมั่นใจ: {score:.2f})")
+        for obj in set(detected_objects):
+            st.write(f"- {obj}")
     else:
-        st.write("ไม่พบวัตถุที่มีความมั่นใจสูงพอในภาพนี้")
+        st.write("ไม่พบวัตถุที่ชัดเจนในภาพ")
