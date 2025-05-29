@@ -18,6 +18,8 @@ headers = {
 
 if "selected_image" not in st.session_state:
     st.session_state.selected_image = None
+if "button_clicked" not in st.session_state:
+    st.session_state.button_clicked = False
 
 def load_image(url):
     try:
@@ -39,7 +41,8 @@ def show_thumbnail_page():
                 st.image(img, caption=name, width=150)
                 if st.button(f"ดู {name}", key=f"btn_{name}"):
                     st.session_state.selected_image = name
-                    st.experimental_rerun()
+                    st.session_state.button_clicked = True
+                    # ไม่ต้องเรียก st.experimental_rerun() ตรงนี้
 
 def show_full_image_page():
     name = st.session_state.selected_image
@@ -55,9 +58,16 @@ def show_full_image_page():
 
     if st.button("กลับไปหน้าเลือกภาพ"):
         st.session_state.selected_image = None
-        st.experimental_rerun()
+        st.session_state.button_clicked = False
+        # ไม่ต้องเรียก st.experimental_rerun() ตรงนี้
 
+# Main logic:
 if st.session_state.selected_image is None:
     show_thumbnail_page()
 else:
     show_full_image_page()
+
+# หลังจาก render เสร็จแล้วถ้ากดปุ่ม ให้ rerun ทีหลัง
+if st.session_state.button_clicked:
+    st.session_state.button_clicked = False
+    st.experimental_rerun()
