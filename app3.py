@@ -96,7 +96,7 @@ if img:
     img_with_boxes = img.copy()
     img_with_boxes = draw_boxes(img_with_boxes, boxes, labels, scores, threshold=0.5)
 
-    st.image(img_with_boxes, caption="ผลลัพธ์พร้อมกรอบวัตถุ", use_column_width=True)
+    st.image(img_with_boxes, caption="ผลลัพธ์พร้อมกรอบวัตถุ", use_container_width=True)
 
     # แสดงชื่อวัตถุที่ตรวจจับได้
     detected_objects = [label for label, score in zip(labels, scores) if score > 0.5]
