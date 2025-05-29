@@ -2,61 +2,65 @@ import streamlit as st
 import requests
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
+from transformers import pipeline
+
+# โหลดโมเดลตรวจจับ
+classifier = pipeline("image-classification")
 
 st.set_page_config(layout="wide")
-st.title("📸 ระบบดูภาพ")
+st.title("📸 ระบบดูภาพและอัปโหลดภาพใหม่")
 
-image_urls = {
+# ภาพเริ่มต้น
+default_images = {
     "บูลด็อก": "https://upload.wikimedia.org/wikipedia/commons/b/bf/Bulldog_inglese.jpg",
     "แมว": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/British_shorthair_with_calico_coat_%282%29.jpg/330px-British_shorthair_with_calico_coat_%282%29.jpg",
     "เสือ": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Panthera_tigris_altaica_female.jpg/500px-Panthera_tigris_altaica_female.jpg"
 }
 
-headers = {
-    "User-Agent": "MyStreamlitApp/1.0 (example@example.com)"
-}
+headers = {"User-Agent": "MyStreamlitApp/1.0"}
 
 # Session state setup
 if "selected_image" not in st.session_state:
     st.session_state.selected_image = None
 if "cached_images" not in st.session_state:
     st.session_state.cached_images = {}
+if "custom_images" not in st.session_state:
+    st.session_state.custom_images = {}
+
+# ฟังก์ชันโหลดภาพ
+def load_image_from_url(url):
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        return Image.open(BytesIO(response.content))
+    except Exception as e:
+        st.error(f"โหลดภาพไม่สำเร็จจาก URL: {e}")
+        return None
 
 def load_image_cached(url):
     if url in st.session_state.cached_images:
         return st.session_state.cached_images[url]
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        img = Image.open(BytesIO(response.content))
+    img = load_image_from_url(url)
+    if img:
         st.session_state.cached_images[url] = img
-        return img
-    except Exception as e:
-        st.error(f"โหลดรูปภาพไม่สำเร็จ: {e}")
-        return None
+    return img
 
 def add_axes_to_image(img, width, height, spacing=100):
-    """เพิ่มแกน X และ Y พร้อมตัวเลขรอบภาพ"""
     img = img.resize((width, height))
-    font_size = 16
     try:
-        font = ImageFont.truetype("arial.ttf", font_size)
+        font = ImageFont.truetype("arial.ttf", 16)
     except:
         font = ImageFont.load_default()
 
-    margin_x = 50
-    margin_y = 50
-
+    margin_x, margin_y = 50, 50
     canvas = Image.new("RGB", (width + margin_x, height + margin_y), "white")
     canvas.paste(img, (margin_x, 0))
     draw = ImageDraw.Draw(canvas)
 
-    # แกน Y (ซ้าย)
     for y in range(0, height + 1, spacing):
         draw.line([(margin_x - 5, y), (margin_x, y)], fill="black")
         draw.text((0, y - 7), str(y), fill="black", font=font)
 
-    # แกน X (ล่าง)
     for x in range(0, width + 1, spacing):
         draw.line([(margin_x + x, height), (margin_x + x, height + 5)], fill="black")
         draw.text((margin_x + x - 10, height + 10), str(x), fill="black", font=font)
@@ -64,67 +68,98 @@ def add_axes_to_image(img, width, height, spacing=100):
     return canvas
 
 def blend_images(base_img, overlay_img, alpha):
-    """ซ้อน overlay_img ลงบน base_img ด้วย alpha"""
     overlay_resized = overlay_img.resize(base_img.size).convert("RGBA")
     base_img_rgba = base_img.convert("RGBA")
     blended = Image.blend(base_img_rgba, overlay_resized, alpha)
     return blended.convert("RGB")
 
 def show_thumbnail_page():
-    st.markdown("### เลือกรูปภาพที่คุณต้องการดูแบบขยาย")
-    cols = st.columns(len(image_urls))
-    for col, (name, url) in zip(cols, image_urls.items()):
-        img = load_image_cached(url)
+    st.markdown("### 🔍 เลือกหรืออัปโหลดภาพ")
+    all_images = {**default_images, **st.session_state.custom_images}
+
+    cols = st.columns(len(all_images))
+    for col, (name, url_or_img) in zip(cols, all_images.items()):
+        if isinstance(url_or_img, str):  # URL
+            img = load_image_cached(url_or_img)
+        else:  # Image object
+            img = url_or_img
+
         if img:
             with col:
                 st.image(img, caption=name, width=180)
                 if st.button(f"ดู {name}", key=f"btn_{name}"):
                     st.session_state.selected_image = name
 
-def show_full_image_page():
-    name = st.session_state.selected_image
-    url = image_urls.get(name)
+    st.markdown("---")
+    st.subheader("🖼 เพิ่มภาพใหม่")
+    col1, col2 = st.columns(2)
 
-    if not url:
-        st.error("ไม่พบ URL ของรูปภาพนี้")
+    with col1:
+        uploaded = st.file_uploader("อัปโหลดภาพจากเครื่อง", type=["jpg", "jpeg", "png"])
+        if uploaded:
+            img = Image.open(uploaded)
+            st.session_state.custom_images[uploaded.name] = img
+            st.success(f"เพิ่มภาพ '{uploaded.name}' แล้ว")
+
+    with col2:
+        url = st.text_input("หรือป้อน URL ของภาพ")
+        if url and st.button("โหลดภาพจาก URL"):
+            img = load_image_from_url(url)
+            if img:
+                name = f"URL-{len(st.session_state.custom_images)+1}"
+                st.session_state.custom_images[name] = img
+                st.success(f"เพิ่มภาพจาก URL แล้วชื่อว่า '{name}'")
+
+def show_full_image_page():
+    all_images = {**default_images, **st.session_state.custom_images}
+    name = st.session_state.selected_image
+    selected_img = all_images.get(name)
+
+    if not selected_img:
+        st.error("ไม่พบภาพนี้")
         return
 
-    base_img = load_image_cached(url)
-    if base_img:
-        st.markdown(f"### ดูภาพขนาดใหญ่: **{name}**")
-        left_col, right_col = st.columns([1.2, 3])
+    st.markdown(f"### ดูภาพขนาดใหญ่: **{name}**")
+    left_col, right_col = st.columns([1.2, 3])
 
-        with left_col:
-            st.subheader("🔧 ปรับขนาดและความชัด")
-            width = st.slider("ความกว้าง (px)", 100, 1200, 700, 50)
-            height = st.slider("ความสูง (px)", 100, 1200, 500, 50)
+    with left_col:
+        st.subheader("🔧 ปรับขนาดและความชัด")
+        width = st.slider("ความกว้าง (px)", 100, 1200, 700, 50)
+        height = st.slider("ความสูง (px)", 100, 1200, 500, 50)
 
-            st.markdown("### 🔍 ความชัดของภาพรอง")
-            overlay_opacity = {}
-            for other_name in image_urls:
-                if other_name != name:
-                    overlay_opacity[other_name] = st.slider(
-                        f"ความชัด '{other_name}'", 0.0, 1.0, 0.0, 0.05)
+        overlay_opacity = {}
+        for other_name, other_img in all_images.items():
+            if other_name != name:
+                overlay_opacity[other_name] = st.slider(
+                    f"ความชัด '{other_name}'", 0.0, 1.0, 0.0, 0.05)
 
-            st.markdown("---")
-            if st.button("🔙 กลับไปหน้าเลือกภาพ"):
-                st.session_state.selected_image = None
+        st.markdown("---")
+        if st.button("🔙 กลับไปหน้าเลือกภาพ"):
+            st.session_state.selected_image = None
 
-        # Resize และรวมภาพรองตามความชัด
-        main_resized = base_img.resize((width, height)).convert("RGB")
-        blended_img = main_resized
+        st.subheader("🧠 ตรวจจับวัตถุในภาพ")
+        with st.spinner("กำลังวิเคราะห์ภาพ..."):
+            try:
+                result = classifier(selected_img)
+                for item in result[:3]:
+                    st.write(f"🔹 {item['label']} ({item['score']:.2f})")
+            except Exception as e:
+                st.error(f"เกิดข้อผิดพลาดในการวิเคราะห์ภาพ: {e}")
 
-        for other_name, opacity in overlay_opacity.items():
-            if opacity > 0:
-                other_img = load_image_cached(image_urls[other_name])
-                if other_img:
-                    blended_img = blend_images(blended_img, other_img, opacity)
+    # รวมภาพ
+    base_resized = selected_img.resize((width, height)).convert("RGB")
+    blended_img = base_resized
 
-        final_img_with_axes = add_axes_to_image(blended_img, width, height)
-        with right_col:
-            st.image(final_img_with_axes, caption=f"{name} + ภาพซ้อน พร้อมแกน X/Y", use_column_width=False)
+    for other_name, opacity in overlay_opacity.items():
+        if opacity > 0:
+            other_img = all_images[other_name]
+            blended_img = blend_images(blended_img, other_img, opacity)
 
-# Main logic
+    final_img = add_axes_to_image(blended_img, width, height)
+    with right_col:
+        st.image(final_img, caption=f"{name} + ภาพซ้อน พร้อมแกน X/Y", use_column_width=False)
+
+# Main
 if st.session_state.selected_image is None:
     show_thumbnail_page()
 else:
