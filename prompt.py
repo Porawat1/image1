@@ -16,13 +16,14 @@ headers = {
     "User-Agent": "MyStreamlitApp/1.0 (example@example.com)"
 }
 
-# Initial session_state setup
+# Setup session state variables
 if "selected_image" not in st.session_state:
     st.session_state.selected_image = None
 if "cached_images" not in st.session_state:
     st.session_state.cached_images = {}
 
 def load_image_cached(url):
+    """โหลดภาพจาก URL และเก็บใน cache ของ session_state"""
     if url in st.session_state.cached_images:
         return st.session_state.cached_images[url]
     try:
@@ -36,38 +37,46 @@ def load_image_cached(url):
         return None
 
 def show_thumbnail_page():
-    st.write("### เลือกรูปภาพที่คุณต้องการดูแบบขยาย")
+    """แสดงหน้ารายการภาพเล็กสำหรับเลือก"""
+    st.markdown("### เลือกรูปภาพที่คุณต้องการดูแบบขยาย")
     cols = st.columns(len(image_urls))
     for col, (name, url) in zip(cols, image_urls.items()):
         img = load_image_cached(url)
         if img:
             with col:
-                st.image(img, caption=name, width=150)
+                st.image(img, caption=name, width=180)
                 if st.button(f"ดู {name}", key=f"btn_{name}"):
                     st.session_state.selected_image = name
 
 def show_full_image_page():
+    """แสดงภาพขนาดใหญ่พร้อม slider ปรับขนาดและปุ่มย้อนกลับ"""
     name = st.session_state.selected_image
-    st.write(f"### รูปภาพขนาดใหญ่: {name}")
     url = image_urls.get(name)
+
     if not url:
         st.error("ไม่พบ URL ของรูปภาพนี้")
         return
 
     img = load_image_cached(url)
     if img:
+        st.markdown(f"### ดูภาพขนาดใหญ่: **{name}**")
+
+        # แบ่งพื้นที่เป็น 2 คอลัมน์: ซ้ายสำหรับควบคุม, ขวาสำหรับแสดงภาพ
         left_col, right_col = st.columns([1, 3])
+
         with left_col:
-            width = st.slider("ปรับความกว้างภาพ (px)", min_value=100, max_value=1200, value=700, step=10)
-            height = st.slider("ปรับความสูงภาพ (px)", min_value=100, max_value=1200, value=500, step=10)
-            if st.button("กลับไปหน้าเลือกภาพ"):
+            st.subheader("ปรับขนาดภาพ")
+            width = st.slider("ความกว้าง (px)", min_value=100, max_value=1200, value=700, step=10)
+            height = st.slider("ความสูง (px)", min_value=100, max_value=1200, value=500, step=10)
+            st.markdown("---")
+            if st.button("🔙 กลับไปหน้าเลือกภาพ"):
                 st.session_state.selected_image = None
-        
+
         with right_col:
             resized_img = img.resize((width, height))
-            st.image(resized_img, caption=name, use_column_width=True)
+            st.image(resized_img, caption=name, use_column_width=False)
 
-# Main logic
+# Main app logic
 if st.session_state.selected_image is None:
     show_thumbnail_page()
 else:
