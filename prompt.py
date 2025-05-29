@@ -147,6 +147,7 @@ def show_full_image_page():
         st.markdown("---")
         if st.button("🔙 กลับไปหน้าเลือกภาพ"):
             st.session_state.selected_image = None
+            st.experimental_rerun()
 
         st.subheader("🧠 (ตัวอย่าง) ตรวจจับวัตถุ")
         st.info("⚠️ คุณไม่ได้ติดตั้งโมเดลตรวจจับภาพ จึงแสดงข้อความจำลองเท่านั้น")
@@ -162,8 +163,12 @@ def show_full_image_page():
             blended_img = blend_images(blended_img, other_img, opacity)
 
     final_img = add_axes_to_image(blended_img, width, height)
+
     with right_col:
-        st.image(final_img, caption=f"{name} + ภาพซ้อน พร้อมแกน X/Y", use_column_width=False)
+        buf = BytesIO()
+        final_img.save(buf, format="PNG")
+        byte_im = buf.getvalue()
+        st.image(byte_im, caption=f"{name} + ภาพซ้อน พร้อมแกน X/Y", use_column_width=False)
 
 # ---------------------
 # Main app
