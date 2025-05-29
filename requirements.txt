@@ -3,8 +3,6 @@ scikit-image
 matplotlib
 pillow
 requests
-flask 
-torch 
-torchvision 
-pillow 
-requests
+flask
+torch
+torchvision
