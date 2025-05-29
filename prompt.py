@@ -9,8 +9,8 @@ st.title("เลือกรูปภาพเพื่อแสดง")
 # URLs ของรูปภาพ (ใช้ลิงก์ใหม่ที่โหลดได้แน่นอน)
 image_urls = {
     "บูลด็อก": "https://upload.wikimedia.org/wikipedia/commons/b/bf/Bulldog_inglese.jpg",
-    "ไซบีเรียน ฮัสกี้": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/British_shorthair_with_calico_coat_%282%29.jpg/330px-British_shorthair_with_calico_coat_%282%29.jpg",
-    "โกลเด้น รีทรีฟเวอร์": "https://upload.wikimedia.org/wikipedia/commons/7/74/Golden_Retriever_Carlos_%2810541340993%29.jpg"
+    "เเมว": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/British_shorthair_with_calico_coat_%282%29.jpg/330px-British_shorthair_with_calico_coat_%282%29.jpg",
+    "เสือ": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Panthera_tigris_altaica_female.jpg/500px-Panthera_tigris_altaica_female.jpg"
 }
 
 # แสดงตัวเลือกภาพ
