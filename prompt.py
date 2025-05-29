@@ -6,7 +6,7 @@ from io import BytesIO
 # หัวข้อหลัก
 st.title("เลือกรูปภาพเพื่อแสดง")
 
-# URLs ของรูปภาพ (ใช้ลิงก์ใหม่ที่โหลดได้แน่นอน)
+# URLs ของรูปภาพ
 image_urls = {
     "บูลด็อก": "https://upload.wikimedia.org/wikipedia/commons/b/bf/Bulldog_inglese.jpg",
     "เเมว": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/British_shorthair_with_calico_coat_%282%29.jpg/330px-British_shorthair_with_calico_coat_%282%29.jpg",
@@ -15,13 +15,16 @@ image_urls = {
 
 # แสดงตัวเลือกภาพ
 choice = st.radio("เลือกรูปภาพที่คุณต้องการดู:", list(image_urls.keys()))
-
-# ดึงรูปภาพจาก URL ที่เลือก
 selected_url = image_urls[choice]
 
+# เพิ่ม headers สำหรับ Wikimedia
+headers = {
+    "User-Agent": "MyStreamlitApp/1.0 (example@example.com)"  # ใส่อะไรก็ได้ที่ดูเหมือน user-agent จริง
+}
+
 try:
-    response = requests.get(selected_url)
-    response.raise_for_status()  # จะ throw error ถ้าสถานะไม่ใช่ 200
+    response = requests.get(selected_url, headers=headers)
+    response.raise_for_status()
     img = Image.open(BytesIO(response.content))
     st.image(img, caption=choice, use_column_width=True)
 except Exception as e:
