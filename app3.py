@@ -11,7 +11,6 @@ app = Flask(__name__)
 model = torch.hub.load('pytorch/vision:v0.15.2', 'fasterrcnn_resnet50_fpn', pretrained=True)
 model.eval()
 
-# ชื่อวัตถุใน COCO dataset
 COCO_INSTANCE_CATEGORY_NAMES = [
     '__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
     'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign',
@@ -50,7 +49,6 @@ def get_objects(image):
     return list(detected_objects)
 
 
-# หน้าเว็บ
 HTML_PAGE = '''
 <!doctype html>
 <title>Upload or Enter URL</title>
@@ -78,26 +76,27 @@ def index():
     error = None
     if request.method == 'POST':
         if 'file' in request.files and request.files['file'].filename != '':
-            # โหลดรูปจากไฟล์ที่อัปโหลด
             file = request.files['file']
             try:
                 image = Image.open(file.stream).convert("RGB")
                 objects = get_objects(image)
             except Exception as e:
-                error = 'Error processing uploaded image.'
+                error = 'Error processing uploaded image: ' + str(e)
         elif request.form.get('url'):
-            # โหลดรูปจาก URL
-            url = request.form.get('url')
-            try:
-                response = requests.get(url)
-                image = Image.open(BytesIO(response.content)).convert("RGB")
-                objects = get_objects(image)
-            except Exception as e:
-                error = 'Error processing image from URL.'
+            url = request.form.get('url').strip()
+            if not (url.startswith('http://') or url.startswith('https://')):
+                error = 'Please enter a valid URL starting with http:// or https://'
+            else:
+                try:
+                    response = requests.get(url)
+                    image = Image.open(BytesIO(response.content)).convert("RGB")
+                    objects = get_objects(image)
+                except Exception as e:
+                    error = 'Error processing image from URL: ' + str(e)
         else:
             error = 'Please upload a file or enter an image URL.'
     return render_template_string(HTML_PAGE, objects=objects, error=error)
 
+
 if __name__ == '__main__':
     app.run(debug=True)
-
