@@ -30,9 +30,9 @@ if "custom_images" not in st.session_state:
 # ---------------------
 def load_image_from_url(url):
     try:
-        response = requests.get(url, headers=headers, timeout=10)
+        response = requests.get(url, headers=headers)
         response.raise_for_status()
-        return Image.open(BytesIO(response.content)).convert("RGB")
+        return Image.open(BytesIO(response.content))
     except Exception as e:
         st.error(f"โหลดภาพไม่สำเร็จจาก URL: {e}")
         return None
@@ -92,9 +92,6 @@ def show_thumbnail_page():
                 st.image(img, caption=name, width=180)
                 if st.button(f"ดู {name}", key=f"btn_{name}"):
                     st.session_state.selected_image = name
-        else:
-            with col:
-                st.write(f"ไม่สามารถโหลดภาพ '{name}' ได้")
 
     st.markdown("---")
     st.subheader("🖼 เพิ่มภาพใหม่")
@@ -103,10 +100,9 @@ def show_thumbnail_page():
     with col1:
         uploaded = st.file_uploader("อัปโหลดภาพจากเครื่อง", type=["jpg", "jpeg", "png"])
         if uploaded:
-            img = Image.open(uploaded).convert("RGB")
+            img = Image.open(uploaded)
             st.session_state.custom_images[uploaded.name] = img
             st.success(f"เพิ่มภาพ '{uploaded.name}' แล้ว")
-            st.experimental_rerun()
 
     with col2:
         url = st.text_input("หรือป้อน URL ของภาพ")
@@ -116,7 +112,6 @@ def show_thumbnail_page():
                 name = f"URL-{len(st.session_state.custom_images)+1}"
                 st.session_state.custom_images[name] = img
                 st.success(f"เพิ่มภาพจาก URL แล้วชื่อว่า '{name}'")
-                st.experimental_rerun()
 
 # ---------------------
 # แสดงหน้าภาพขนาดใหญ่
@@ -147,7 +142,6 @@ def show_full_image_page():
         st.markdown("---")
         if st.button("🔙 กลับไปหน้าเลือกภาพ"):
             st.session_state.selected_image = None
-            st.experimental_rerun()
 
         st.subheader("🧠 (ตัวอย่าง) ตรวจจับวัตถุ")
         st.info("⚠️ คุณไม่ได้ติดตั้งโมเดลตรวจจับภาพ จึงแสดงข้อความจำลองเท่านั้น")
@@ -163,12 +157,8 @@ def show_full_image_page():
             blended_img = blend_images(blended_img, other_img, opacity)
 
     final_img = add_axes_to_image(blended_img, width, height)
-
     with right_col:
-        buf = BytesIO()
-        final_img.save(buf, format="PNG")
-        byte_im = buf.getvalue()
-        st.image(byte_im, caption=f"{name} + ภาพซ้อน พร้อมแกน X/Y", use_column_width=False)
+        st.image(final_img, caption=f"{name} + ภาพซ้อน พร้อมแกน X/Y", use_column_width=False)
 
 # ---------------------
 # Main app
