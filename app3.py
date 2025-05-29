@@ -1,101 +1,81 @@
-from flask import Flask, request, render_template_string
+import streamlit as st
 from PIL import Image
 import requests
 from io import BytesIO
 import torch
-import torchvision.transforms as T
+from torchvision import models, transforms
 import torchvision
 
-app = Flask(__name__)
+# โหลดโมเดล Faster R-CNN pretrained สำหรับ object detection
+@st.cache_resource
+def load_model():
+    model = models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+    model.eval()
+    return model
 
-# โหลดโมเดล Faster R-CNN แบบ pretrained จาก torchvision โดยตรง
-model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
-model.eval()
+model = load_model()
 
+# label ของ COCO dataset (80 class)
 COCO_INSTANCE_CATEGORY_NAMES = [
     '__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
-    'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign',
+    'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'N/A', 'stop sign',
     'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
-    'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag',
-    'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite',
-    'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket',
-    'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana',
-    'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza',
-    'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table',
-    'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
-    'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock',
-    'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
+    'elephant', 'bear', 'zebra', 'giraffe', 'N/A', 'backpack', 'umbrella',
+    'N/A', 'N/A', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard',
+    'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard',
+    'surfboard', 'tennis racket', 'bottle', 'N/A', 'wine glass', 'cup', 'fork',
+    'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange',
+    'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
+    'potted plant', 'bed', 'N/A', 'dining table', 'N/A', 'N/A', 'toilet',
+    'N/A', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
+    'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'N/A', 'book',
+    'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
 ]
 
-def transform_image(image):
-    transform = T.Compose([
-        T.ToTensor(),
+# ฟังก์ชันแปลงภาพและทำ object detection
+def predict(image):
+    transform = transforms.Compose([
+        transforms.ToTensor(),
     ])
-    return transform(image)
-
-def get_objects(image):
-    img_t = transform_image(image)
+    img = transform(image)
     with torch.no_grad():
-        predictions = model([img_t])[0]
+        predictions = model([img])
+    return predictions[0]
 
-    threshold = 0.5  # confidence threshold
-    labels = predictions['labels']
-    scores = predictions['scores']
+st.title("Object Detection with Streamlit")
 
-    detected_objects = set()
-    for label, score in zip(labels, scores):
-        if score > threshold:
-            detected_objects.add(COCO_INSTANCE_CATEGORY_NAMES[label])
+# เลือก input
+option = st.radio("เลือกวิธีโหลดรูปภาพ", ("จาก URL", "อัปโหลดไฟล์"))
 
-    return list(detected_objects)
+img = None
+if option == "จาก URL":
+    url = st.text_input("กรุณาใส่ URL รูปภาพ")
+    if url:
+        try:
+            response = requests.get(url)
+            img = Image.open(BytesIO(response.content)).convert("RGB")
+            st.image(img, caption="รูปภาพที่โหลดจาก URL", use_column_width=True)
+        except:
+            st.error("โหลดรูปภาพไม่สำเร็จ โปรดตรวจสอบ URL อีกครั้ง")
+elif option == "อัปโหลดไฟล์":
+    uploaded_file = st.file_uploader("เลือกไฟล์รูปภาพ", type=["jpg", "jpeg", "png"])
+    if uploaded_file:
+        img = Image.open(uploaded_file).convert("RGB")
+        st.image(img, caption="รูปภาพที่อัปโหลด", use_column_width=True)
 
-HTML_PAGE = '''
-<!doctype html>
-<title>Upload or Enter URL</title>
-<h1>Upload an image or enter URL</h1>
-<form method=post enctype=multipart/form-data>
-  Upload Image: <input type=file name=file><br><br>
-  Or enter Image URL: <input type=text name=url><br><br>
-  <input type=submit value=Detect>
-</form>
-{% if objects %}
-  <h2>Objects detected:</h2>
-  <ul>
-    {% for obj in objects %}
-      <li>{{ obj }}</li>
-    {% endfor %}
-  </ul>
-{% elif error %}
-  <p style="color:red;">{{ error }}</p>
-{% endif %}
-'''
+# ถ้ามีรูปภาพ ให้ตรวจจับวัตถุ
+if img:
+    st.write("กำลังวิเคราะห์รูปภาพ...")
+    preds = predict(img)
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    objects = None
-    error = None
-    if request.method == 'POST':
-        if 'file' in request.files and request.files['file'].filename != '':
-            file = request.files['file']
-            try:
-                image = Image.open(file.stream).convert("RGB")
-                objects = get_objects(image)
-            except Exception as e:
-                error = 'Error processing uploaded image: ' + str(e)
-        elif request.form.get('url'):
-            url = request.form.get('url').strip()
-            if not (url.startswith('http://') or url.startswith('https://')):
-                error = 'Please enter a valid URL starting with http:// or https://'
-            else:
-                try:
-                    response = requests.get(url)
-                    image = Image.open(BytesIO(response.content)).convert("RGB")
-                    objects = get_objects(image)
-                except Exception as e:
-                    error = 'Error processing image from URL: ' + str(e)
-        else:
-            error = 'Please upload a file or enter an image URL.'
-    return render_template_string(HTML_PAGE, objects=objects, error=error)
+    # เลือก object ที่มีความมั่นใจมากกว่า 0.5
+    threshold = 0.5
+    pred_classes = [COCO_INSTANCE_CATEGORY_NAMES[i] for i, score in zip(preds['labels'], preds['scores']) if score > threshold]
+    pred_scores = [score.item() for score in preds['scores'] if score > threshold]
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    if pred_classes:
+        st.write("วัตถุที่พบในภาพ:")
+        for cls, score in zip(pred_classes, pred_scores):
+            st.write(f"- {cls} (ความมั่นใจ: {score:.2f})")
+    else:
+        st.write("ไม่พบวัตถุที่มีความมั่นใจสูงพอในภาพนี้")
