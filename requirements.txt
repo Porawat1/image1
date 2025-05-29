@@ -3,3 +3,8 @@ scikit-image>=0.19.3
 matplotlib
 pillow
 requests
+flask 
+torch 
+torchvision 
+pillow 
+requests
