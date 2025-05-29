@@ -9,7 +9,7 @@ st.title("เลือกรูปภาพเพื่อแสดง")
 # URLs ของรูปภาพ
 image_urls = {
     "บูลด็อก": "https://upload.wikimedia.org/wikipedia/commons/b/bf/Bulldog_inglese.jpg",
-    "ไซบีเรียน ฮัสกี้": "https://upload.wikimedia.org/wikipedia/commons/6/60/Siberian_Husky_pho.jpg",
+    "ไซบีเรียน ฮัสกี้": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/British_shorthair_with_calico_coat_%282%29.jpg/330px-British_shorthair_with_calico_coat_%282%29.jpg",
     "โกลเด้น รีทรีฟเวอร์": "https://upload.wikimedia.org/wikipedia/commons/0/08/Golden_retriever_eating_pigs_foot.jpg"
 }
 
