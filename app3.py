@@ -29,6 +29,90 @@ COCO_INSTANCE_CATEGORY_NAMES = [
     'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
 ]
 
+# Dictionary แปลชื่อวัตถุเป็นภาษาไทย
+label_translations = {
+    "person": "คน",
+    "bicycle": "จักรยาน",
+    "car": "รถยนต์",
+    "motorcycle": "รถจักรยานยนต์",
+    "airplane": "เครื่องบิน",
+    "bus": "รถบัส",
+    "train": "รถไฟ",
+    "truck": "รถบรรทุก",
+    "boat": "เรือ",
+    "traffic light": "สัญญาณไฟจราจร",
+    "fire hydrant": "ปั๊มน้ำดับเพลิง",
+    "stop sign": "ป้ายหยุด",
+    "parking meter": "มิเตอร์จอดรถ",
+    "bench": "ม้านั่ง",
+    "bird": "นก",
+    "cat": "แมว",
+    "dog": "สุนัข",
+    "horse": "ม้า",
+    "sheep": "แกะ",
+    "cow": "วัว",
+    "elephant": "ช้าง",
+    "bear": "หมี",
+    "zebra": "ม้าลาย",
+    "giraffe": "ยีราฟ",
+    "backpack": "กระเป๋าเป้",
+    "umbrella": "ร่ม",
+    "handbag": "กระเป๋าถือ",
+    "tie": "เนกไท",
+    "suitcase": "กระเป๋าเดินทาง",
+    "frisbee": "จานร่อน",
+    "skis": "สกี",
+    "snowboard": "สโนวบอร์ด",
+    "sports ball": "ลูกบอลกีฬา",
+    "kite": "ว่าว",
+    "baseball bat": "ไม้เบสบอล",
+    "baseball glove": "ถุงมือเบสบอล",
+    "skateboard": "สเก็ตบอร์ด",
+    "surfboard": "กระดานโต้คลื่น",
+    "tennis racket": "ไม้เทนนิส",
+    "bottle": "ขวด",
+    "wine glass": "แก้วไวน์",
+    "cup": "ถ้วย",
+    "fork": "ส้อม",
+    "knife": "มีด",
+    "spoon": "ช้อน",
+    "bowl": "ชาม",
+    "banana": "กล้วย",
+    "apple": "แอปเปิ้ล",
+    "sandwich": "แซนวิช",
+    "orange": "ส้ม",
+    "broccoli": "บรอกโคลี",
+    "carrot": "แครอท",
+    "hot dog": "ฮอทด็อก",
+    "pizza": "พิซซ่า",
+    "donut": "โดนัท",
+    "cake": "เค้ก",
+    "chair": "เก้าอี้",
+    "couch": "โซฟา",
+    "potted plant": "ต้นไม้ในกระถาง",
+    "bed": "เตียง",
+    "dining table": "โต๊ะอาหาร",
+    "toilet": "สุขา",
+    "tv": "โทรทัศน์",
+    "laptop": "แล็ปท็อป",
+    "mouse": "เมาส์",
+    "remote": "รีโมท",
+    "keyboard": "คีย์บอร์ด",
+    "cell phone": "โทรศัพท์มือถือ",
+    "microwave": "ไมโครเวฟ",
+    "oven": "เตาอบ",
+    "toaster": "เครื่องปิ้งขนมปัง",
+    "sink": "อ่างล้างหน้า",
+    "refrigerator": "ตู้เย็น",
+    "book": "หนังสือ",
+    "clock": "นาฬิกา",
+    "vase": "แจกัน",
+    "scissors": "กรรไกร",
+    "teddy bear": "ตุ๊กตาหมี",
+    "hair drier": "ไดร์เป่าผม",
+    "toothbrush": "แปรงสีฟัน"
+}
+
 def predict(image):
     transform = transforms.Compose([
         transforms.ToTensor(),
@@ -98,11 +182,12 @@ if img:
 
     st.image(img_with_boxes, caption="ผลลัพธ์พร้อมกรอบวัตถุ", use_container_width=True)
 
-    # แสดงชื่อวัตถุที่ตรวจจับได้
+    # แสดงชื่อวัตถุที่ตรวจจับได้ พร้อมแปลเป็นภาษาไทย
     detected_objects = [label for label, score in zip(labels, scores) if score > 0.5]
     if detected_objects:
         st.write("วัตถุที่พบในภาพ:")
         for obj in set(detected_objects):
-            st.write(f"- {obj}")
+            thai_name = label_translations.get(obj, obj)  # ถ้าไม่มีชื่อแปล ใช้ชื่ออังกฤษเดิม
+            st.write(f"- {thai_name}")
     else:
         st.write("ไม่พบวัตถุที่ชัดเจนในภาพ")
