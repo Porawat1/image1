@@ -18,9 +18,11 @@ choice = st.radio("เลือกรูปภาพที่คุณต้อ�
 
 # ดึงรูปภาพจาก URL ที่เลือก
 selected_url = image_urls[choice]
-response = requests.get(selected_url)
 
-# แสดงภาพที่เลือก
-if response.status_code == 200:
+try:
+    response = requests.get(selected_url)
+    response.raise_for_status()  # จะ throw error ถ้าสถานะไม่ใช่ 200
     img = Image.open(BytesIO(response.content))
     st.image(img, caption=choice, use_column_width=True)
+except Exception as e:
+    st.error(f"ไม่สามารถโหลดรูปภาพได้: {e}")
