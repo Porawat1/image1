@@ -3,6 +3,7 @@ import requests
 from PIL import Image
 from io import BytesIO
 
+# หัวข้อหลัก
 st.title("เลือกรูปภาพเพื่อแสดง")
 
 # URLs ของรูปภาพ
@@ -12,26 +13,16 @@ image_urls = {
     "โกลเด้น รีทรีฟเวอร์": "https://upload.wikimedia.org/wikipedia/commons/0/08/Golden_retriever_eating_pigs_foot.jpg"
 }
 
-# สร้างคอลัมน์ 3 ช่องสำหรับรูปภาพย่อ
-cols = st.columns(3)
-selected = None
+# แสดงตัวเลือกภาพ
+choice = st.radio("เลือกรูปภาพที่คุณต้องการดู:", list(image_urls.keys()))
 
-for idx, (label, url) in enumerate(image_urls.items()):
-    try:
-        response = requests.get(url)
-        if response.status_code == 200:
-            img = Image.open(BytesIO(response.content))
-            with cols[idx]:
-                st.image(img, caption=label, use_column_width=True)
-                if st.button(f"เลือก {label}"):
-                    selected = (label, img)
-        else:
-            st.warning(f"โหลดรูป {label} ไม่สำเร็จ")
-    except Exception as e:
-        st.error(f"เกิดข้อผิดพลาดกับ {label}: {e}")
+# ดึงรูปภาพจาก URL ที่เลือก
+selected_url = image_urls[choice]
+response = requests.get(selected_url)
 
-# แสดงภาพใหญ่ที่เลือก
-if selected:
-    st.markdown("---")
-    st.subheader(f"คุณเลือกรูป: {selected[0]}")
-    st.image(selected[1], caption=selected[0], use_column_width=True)
+# แสดงภาพที่เลือก
+if response.status_code == 200:
+    img = Image.open(BytesIO(response.content))
+    st.image(img, caption=choice, use_column_width=True)
+else:
+    st.error("ไม่สามารถโหลดรูปภาพจาก URL ได้")
