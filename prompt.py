@@ -19,8 +19,6 @@ headers = {
 # Initial session_state setup
 if "selected_image" not in st.session_state:
     st.session_state.selected_image = None
-if "button_clicked" not in st.session_state:
-    st.session_state.button_clicked = False
 if "cached_images" not in st.session_state:
     st.session_state.cached_images = {}
 
@@ -47,7 +45,6 @@ def show_thumbnail_page():
                 st.image(img, caption=name, width=150)
                 if st.button(f"ดู {name}", key=f"btn_{name}"):
                     st.session_state.selected_image = name
-                    st.session_state.button_clicked = True
 
 def show_full_image_page():
     name = st.session_state.selected_image
@@ -59,14 +56,12 @@ def show_full_image_page():
 
     img = load_image_cached(url)
     if img:
-        # ใช้ 2 คอลัมน์ เพื่อจัด slider กับรูปภาพแยกกัน
         left_col, right_col = st.columns([1, 3])
         with left_col:
             width = st.slider("ปรับความกว้างภาพ (px)", min_value=100, max_value=1200, value=700, step=10)
             height = st.slider("ปรับความสูงภาพ (px)", min_value=100, max_value=1200, value=500, step=10)
             if st.button("กลับไปหน้าเลือกภาพ"):
                 st.session_state.selected_image = None
-                st.session_state.button_clicked = False
         
         with right_col:
             resized_img = img.resize((width, height))
@@ -77,8 +72,3 @@ if st.session_state.selected_image is None:
     show_thumbnail_page()
 else:
     show_full_image_page()
-
-# Rerun หลังจากปุ่มกด
-if st.session_state.button_clicked:
-    st.session_state.button_clicked = False
-    st.experimental_rerun()
