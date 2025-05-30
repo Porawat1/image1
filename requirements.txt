@@ -3,3 +3,9 @@ torch
 torchvision 
 pillow 
 requests
+streamlit
+tensorflow
+numpy
+Pillow
+matplotlib
+
