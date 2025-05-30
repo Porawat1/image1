@@ -1,5 +1,7 @@
 streamlit
-tensorflow-cpu
-numpy
-Pillow
-matplotlib
+transformers
+groq
+requests
+pypdf
+PyPDF2
+pandas
